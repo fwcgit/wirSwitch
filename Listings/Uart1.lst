@@ -1,0 +1,211 @@
+C51 COMPILER V9.56.0.0   UART1                                                             06/02/2017 21:40:59 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE UART1
+OBJECT MODULE PLACED IN .\Objects\Uart1.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Uart1.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\Uar
+                    -t1.lst) TABS(2) OBJECT(.\Objects\Uart1.obj)
+
+line level    source
+
+   1          #include "Uart.h"
+   2          #include<string.h>
+   3          #include<reg52.h>
+   4          typedef unsigned int uint;
+   5          typedef unsigned char byte;
+   6          
+   7          byte buy = 0;
+   8          uint rxIndex = 0;
+   9          byte idata buff[REVEIVE_BUFF_SIZE] ;
+  10          sfr IAP_CONTR   =   0xC7; 
+  11          
+  12          byte isRec = 0;
+  13          byte isHand = 0;
+  14          
+  15          void Uart1() interrupt 4 using 1
+  16          {
+  17   1        byte rByte;
+  18   1        
+  19   1        if(RI)
+  20   1        {
+  21   2          RI = 0;
+  22   2          
+  23   2          rByte = SBUF;
+  24   2            
+  25   2          if(rxIndex >= REVEIVE_BUFF_SIZE)
+  26   2          {
+  27   3            isRec = 0;
+  28   3            rxIndex = 0;
+  29   3          }
+  30   2          if(rByte == 0x3C)
+  31   2          {
+  32   3            isRec = 1;
+  33   3          }
+  34   2          
+  35   2          if(isRec)
+  36   2          {
+  37   3            buff[rxIndex++] = rByte;
+  38   3          }
+  39   2          
+  40   2          
+  41   2          if(rByte == 0x0D && isRec)
+  42   2          {
+  43   3            isHand = 1;
+  44   3            isRec = 0;
+  45   3            rxIndex = 0;
+  46   3          }
+  47   2        }
+  48   1        
+  49   1        if(TI)
+  50   1        {
+  51   2          TI = 0;
+  52   2          buy = 0;
+  53   2        }
+  54   1      }
+C51 COMPILER V9.56.0.0   UART1                                                             06/02/2017 21:40:59 PAGE 2   
+
+  55          
+  56          void sendData(byte dat)
+  57          {
+  58   1          while(buy);
+  59   1        
+  60   1          buy = 1;
+  61   1          SBUF = dat;
+  62   1      }
+  63          
+  64          void sendStr(char *dat)
+  65          {
+  66   1        while(*dat)
+  67   1        {
+  68   2          sendData(*dat++);
+  69   2        }
+  70   1      }
+  71          void sendStrlen(char *dat,int len)
+  72          {
+  73   1        uint i;
+  74   1        for(i=0;i<len;i++)
+  75   1        {
+  76   2          sendData(*(dat+i));
+  77   2        }
+  78   1      }
+  79          
+  80          
+  81          
+  82          void paraerData()
+  83          {
+  84   1        uint check = 0;
+  85   1        byte resp[4];
+  86   1        
+  87   1        if(isHand)
+  88   1        {
+  89   2          
+  90   2          if(*buff == 0x3C)
+  91   2          {
+  92   3            //check=*(buff+1)+*(buff+2)+*(buff+3);
+  93   3            //check &= 0xff;
+  94   3            //if(check == *(buff+4))
+  95   3            //{
+  96   3                if(*(buff+1) == 0xA0)
+  97   3              {
+  98   4                  if(*(buff+2) == 0x01)
+  99   4                  {
+ 100   5                    RELAY_S1 = 0;
+ 101   5                  }
+ 102   4                  else
+ 103   4                  {
+ 104   5                    RELAY_S1 = 1;
+ 105   5                  }
+ 106   4                  
+ 107   4                  if(*(buff+3) == 0x01)
+ 108   4                  {
+ 109   5                    RELAY_S2 = 0;
+ 110   5                  }
+ 111   4                  else
+ 112   4                  {
+ 113   5                    RELAY_S2 = 1;
+ 114   5                  }
+ 115   4                  resp[0] = 0x3C;
+ 116   4                  resp[1] = 0xAD;
+C51 COMPILER V9.56.0.0   UART1                                                             06/02/2017 21:40:59 PAGE 3   
+
+ 117   4                  resp[2] = 0x0D;
+ 118   4                  sendStrlen(resp,3);
+ 119   4              }
+ 120   3              else if(*(buff+1) = 0xaa)
+*** WARNING C276 IN LINE 120 OF Uart1.c: constant in condition expression
+ 121   3              {
+ 122   4                upload_status();
+ 123   4              }
+ 124   3              else if(*(buff+1) == 0xdd)
+ 125   3              {
+ 126   4                IAP_CONTR = 0x60;
+ 127   4              }
+ 128   3            //}
+ 129   3      
+ 130   3          }
+ 131   2          memset(buff,0,sizeof(buff));
+ 132   2          isHand = 0;
+ 133   2        }
+ 134   1        
+ 135   1      }
+ 136          
+ 137          
+ 138          void sleep(uint sleep)
+ 139          {
+ 140   1        uint i,j;
+ 141   1        for(i = sleep ; i > 0 ; i --)
+ 142   1          for(j = 2000 ; j > 0 ; j --);
+ 143   1      }
+ 144          void sleep_us(unsigned int t)
+ 145          {
+ 146   1        uint i,j;
+ 147   1        for(i = t ; i > 0 ; i --)
+ 148   1          for(j = 3 ; j > 0 ; j --);
+ 149   1      }
+ 150          
+ 151          void UART1_Init()
+ 152          {
+ 153   1        SCON = 0X50;
+ 154   1        T2L = (65536 - (FOSC/4/BAUD));
+ 155   1        T2H = (65536 - (FOSC/4/BAUD)) >> 8;
+ 156   1        AUXR |= 0X14;
+ 157   1        AUXR |= 0X01;
+ 158   1        ES =1;
+ 159   1        EA = 1;
+ 160   1      }
+ 161          
+ 162          void upload_status()
+ 163          {
+ 164   1        unsigned char temp;
+ 165   1        unsigned char dat[5];
+ 166   1        
+ 167   1        temp = RELAY_S1;
+ 168   1        temp = temp << 4 | RELAY_S2;
+ 169   1        
+ 170   1        dat[0] = 0x3a;
+ 171   1        dat[1] = 0xaa;
+ 172   1        dat[2] = temp;
+ 173   1        dat[3] = (dat[1] + dat[2]) & 0xff;
+ 174   1        dat[4] = 0x0d;
+ 175   1      }
+ 176          
+ 177          
+C51 COMPILER V9.56.0.0   UART1                                                             06/02/2017 21:40:59 PAGE 4   
+
+ 178          
+ 179          
+*** WARNING C294 IN LINE 124 OF Uart1.c: unreachable code
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    388    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      5      19
+   IDATA SIZE       =     10    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

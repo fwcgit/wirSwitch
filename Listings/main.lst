@@ -1,0 +1,108 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/02/2017 21:40:59 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main
+                    -.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include<reg52.h>
+   2          #include<Uart.h>
+   3          
+   4          sfr WDT_CONTR   = 0xc1;  
+   5          sfr P1M1 = 0x91;
+   6          sfr P1M0 = 0x92;
+   7          
+   8          void sysInit();
+   9          void Timer0Init(void);
+  10          
+  11          unsigned int waitCount = 0;
+  12          unsigned int lookDogCount = 0;
+  13          
+  14          unsigned char SEND_FLAG = 0;
+  15          unsigned char LOOK_DOG_FLAG = 0;
+  16          
+  17          void main()
+  18          {
+  19   1        
+  20   1        P1M1 = 0x00;
+  21   1        P1M0 = 0x00;
+  22   1        
+  23   1        sysInit();
+  24   1        
+  25   1        WDT_CONTR = 0x06;
+  26   1        WDT_CONTR |= 0x20;
+  27   1        
+  28   1        while(1)
+  29   1        {
+  30   2          if(LOOK_DOG_FLAG)
+  31   2          {
+  32   3            LOOK_DOG_FLAG = 0;
+  33   3            WDT_CONTR |= 1 << 4;
+  34   3          }
+  35   2          
+  36   2          if(SEND_FLAG)
+  37   2          {
+  38   3            SEND_FLAG = 0;
+  39   3          }
+  40   2          
+  41   2          paraerData();
+  42   2        }
+  43   1      }
+  44          
+  45          
+  46          void sysInit()
+  47          {
+  48   1        
+  49   1        Timer0Init();
+  50   1        
+  51   1        UART1_Init();
+  52   1        
+  53   1      }
+  54          
+C51 COMPILER V9.56.0.0   MAIN                                                              06/02/2017 21:40:59 PAGE 2   
+
+  55          void Timer0Init(void)   
+  56          {
+  57   1        AUXR |= 0x80; 
+  58   1        TMOD &= 0xF0;   
+  59   1        TL0 = 0x40;   
+  60   1        TH0 = 0xa2;   
+  61   1        TF0 = 0;
+  62   1        ET0 = 1;
+  63   1        TR0 = 1;    
+  64   1      }
+  65          
+  66          void tm0_isr() interrupt 1 using 1
+  67          {
+  68   1        
+  69   1      
+  70   1        
+  71   1        if(waitCount++ ==3000)
+  72   1        {
+  73   2          SEND_FLAG = 1;
+  74   2          waitCount = 0;
+  75   2        }
+  76   1        if(lookDogCount++ == 1000)
+  77   1        {
+  78   2          lookDogCount = 0;
+  79   2          LOOK_DOG_FLAG = 1;
+  80   2        }
+  81   1          
+  82   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    127    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

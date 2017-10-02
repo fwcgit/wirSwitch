@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\Uart1.obj",
+".\Objects\main.obj" 
+TO ".\Objects\wirSwitch" 
+PRINT(".\Listings\wirSwitch.m51") RAMSIZE(256) 
